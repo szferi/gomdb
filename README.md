@@ -1,7 +1,8 @@
 gomdb
 =====
 
-Go wrapper for OpenLDAP Lightning Memory-Mapped Database (LMDB)
+Go wrapper for OpenLDAP Lightning Memory-Mapped Database (LMDB).
+(progress: 16/43)
 
 Install
 =======
@@ -13,4 +14,7 @@ make install
 It will install to /usr/local
 
 export LD_LIBRARY_PATH=/usr/local/lib
+
 go test -v
+
+
