@@ -217,6 +217,7 @@ func (env *Env) SetMaxDBs(size DBI) error {
 	return nil
 }
 
-func (env *Env) DBIClose(dbi DBI) error {
+func (env *Env) DBIClose(dbi DBI) {
+	C.mdb_dbi_close(env._env, C.MDB_dbi(dbi))
 }
 
