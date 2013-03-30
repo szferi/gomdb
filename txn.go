@@ -25,6 +25,16 @@ const (
 	CREATE = C.MDB_CREATE // create DB if not already existing
 )
 
+// put flags
+const (
+	NODUPDATA = C.MDB_NODUPDATA
+	DUPSORT = C.MDB_DUBSORT
+	NOOVERWRITE = C.MDB_NOOVERWRITE
+	RESERVE = C.MDB_RESERVE
+	APPEND = C.MDB_APPEND
+	APPENDDUP = C.MDB_APPENDDUP
+)
+
 // Txn is Opaque structure for a transaction handle. 
 // All database operations require a transaction handle. 
 // Transactions may be read-only or read-write.
@@ -100,3 +110,65 @@ func (txn *Txn) Drop(dbi DBI, del int) error {
 	return nil
 }
 
+func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
+	var ckey *C.MDB_val
+	ckey.mv_size = C.size_t(len(key))
+	ckey.mv_data = unsafe.Pointer(&key[0])
+	var cval *C.MDB_val
+	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), ckey, cval)
+	if ret != SUCCESS {
+		return nil, Errno(ret)
+	}
+	val = C.GoBytes(cval.mv_data, cval.mv_size)
+	return val, nil
+}
+
+func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
+	var ckey *C.MDB_val
+	ckey.mv_size = C.size_t(len(key))
+	ckey.mv_data = unsafe.Pointer(&key[0])
+	var cval *C.MDB_val
+	cval.mv_size = C.size_t(len(val))
+	cval.mv_data = unsafe.Pointer(&val[0])
+	ret := C.mdb_put(txn._txn, C.MDB_dbi(dbi), ckey, cval, C.uint(flags))
+	if ret != SUCCESS {
+		return Errno(ret)
+	}
+	return nil
+}
+
+func (txn *Txn) Del(dbi DBI, key []byte, val []byte) error {
+	var ckey *C.MDB_val
+	ckey.mv_size = C.size_t(len(key))
+	ckey.mv_data = unsafe.Pointer(&key[0])
+	// XXX null val?
+	var cval *C.MDB_val
+	cval.mv_size = C.size_t(len(val))
+	cval.mv_data = unsafe.Pointer(&val[0])
+	ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), ckey, cval)
+	if ret != SUCCESS {
+		return Errno(ret)
+	}
+	return nil
+}
+
+type Cursor struct {
+	_cursor *C.MDB_cursor
+}
+
+func (txn *) CursorOpen(dbi DBI) (*Cursor, error) {
+	var _cursor *C.MDB_cursor
+	ret := C.mdb_cursor_open(txn._txn, C.MDB_dbi(dbi), &_cursor)
+	if ret != SUCCESS {
+		return nil, Errno(ret)
+	}
+	return &Cursor{_cursor}, nil
+}
+
+func (txn *) CursorRenew(cursor *Cursor) error {
+	ret := C.mdb_cursor_renew(txn._txn, cursor._cursor)
+	if ret != SUCCESS {
+		return Errno(ret)
+	}
+	return nil
+}
