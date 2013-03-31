@@ -64,7 +64,7 @@ func clean(env *Env, t *testing.T) {
 	if path == "" {
 		t.Errorf("Invalid path")
 	}
-	t.Log("Env path: %s", path)
+	t.Logf("Env path: %s", path)
 	err = env.Close()
 	if err != nil {
 		t.Errorf("Error during close of environment: %s", err)

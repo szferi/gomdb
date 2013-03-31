@@ -11,6 +11,7 @@ package mdb
 import "C"
 
 import (
+	"math"
 	"unsafe"
 )
 
@@ -43,7 +44,13 @@ type Txn struct {
 
 func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
 	var _txn *C.MDB_txn
-	ret := C.mdb_txn_begin(env._env, parent._txn, C.uint(flags), &_txn)
+	var ptxn *C.MDB_txn
+	if parent == nil {
+		ptxn = nil
+	} else {
+		ptxn = parent._txn
+	}
+	ret := C.mdb_txn_begin(env._env, ptxn, C.uint(flags), &_txn)
 	if ret != SUCCESS {
 		return nil, Errno(ret)
 	}
@@ -75,13 +82,18 @@ func (txn *Txn) Renew() error {
 	return nil
 }
 
-func (txn *Txn) DBIOpen(name string, flags uint) (DBI, error) {
+func (txn *Txn) DBIOpen(name *string, flags uint) (DBI, error) {
 	var _dbi C.MDB_dbi
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
+	var cname *C.char
+	if name == nil {
+		cname = nil
+	} else {
+		cname = C.CString(*name)
+		defer C.free(unsafe.Pointer(cname))
+	}
 	ret := C.mdb_dbi_open(txn._txn, cname, C.uint(flags), &_dbi)
 	if ret != SUCCESS {
-		return 0, Errno(ret)
+		return DBI(math.NaN()), Errno(ret)
 	}
 	return DBI(_dbi), nil
 }
@@ -115,9 +127,8 @@ func (txn *Txn) Drop(dbi DBI, del int) error {
 // func (txn *Txn) SetRelCtx(dbi DBI, void *) error
 
 func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
-	var ckey *C.MDB_val
-	ckey.mv_size = C.size_t(len(key))
-	ckey.mv_data = unsafe.Pointer(&key[0])
+	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
+		mv_data: unsafe.Pointer(&key[0])}
 	var cval *C.MDB_val
 	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), ckey, cval)
 	if ret != SUCCESS {
@@ -128,12 +139,10 @@ func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 }
 
 func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
-	var ckey *C.MDB_val
-	ckey.mv_size = C.size_t(len(key))
-	ckey.mv_data = unsafe.Pointer(&key[0])
-	var cval *C.MDB_val
-	cval.mv_size = C.size_t(len(val))
-	cval.mv_data = unsafe.Pointer(&val[0])
+	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
+		mv_data: unsafe.Pointer(&key[0])}
+	cval := &C.MDB_val{mv_size: C.size_t(len(val)),
+		mv_data: unsafe.Pointer(&val[0])}
 	ret := C.mdb_put(txn._txn, C.MDB_dbi(dbi), ckey, cval, C.uint(flags))
 	if ret != SUCCESS {
 		return Errno(ret)
@@ -142,13 +151,15 @@ func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
 }
 
 func (txn *Txn) Del(dbi DBI, key []byte, val []byte) error {
-	var ckey *C.MDB_val
-	ckey.mv_size = C.size_t(len(key))
-	ckey.mv_data = unsafe.Pointer(&key[0])
-	// XXX null val?
+	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
+		mv_data: unsafe.Pointer(&key[0])}
 	var cval *C.MDB_val
-	cval.mv_size = C.size_t(len(val))
-	cval.mv_data = unsafe.Pointer(&val[0])
+	if val == nil {
+		cval = nil
+	} else {
+		cval = &C.MDB_val{mv_size: C.size_t(len(val)),
+			mv_data: unsafe.Pointer(&val[0])}
+	}
 	ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), ckey, cval)
 	if ret != SUCCESS {
 		return Errno(ret)

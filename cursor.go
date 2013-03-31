@@ -77,12 +77,10 @@ func (cursor *Cursor) Get(op uint) (key []byte, val []byte, error) {
 }*/
 
 func (cursor *Cursor) Put(key []byte, val []byte, flags uint) error {
-	var ckey *C.MDB_val
-	ckey.mv_size = C.size_t(len(key))
-	ckey.mv_data = unsafe.Pointer(&key[0])
-	var cval *C.MDB_val
-	cval.mv_size = C.size_t(len(val))
-	cval.mv_data = unsafe.Pointer(&val[0])
+	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
+		mv_data: unsafe.Pointer(&key[0])}
+	cval := &C.MDB_val{mv_size: C.size_t(len(val)),
+		mv_data: unsafe.Pointer(&val[0])}
 	ret := C.mdb_cursor_put(cursor._cursor, ckey, cval, C.uint(flags))
 	if ret != SUCCESS {
 		return Errno(ret)
