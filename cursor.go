@@ -46,7 +46,7 @@ func (cursor *Cursor) Close() error {
 	return nil
 }
 
-func (cursor *Cursor) Txn() (*Txn) {
+func (cursor *Cursor) Txn() *Txn {
 	var _txn *C.MDB_txn
 	_txn = C.mdb_cursor_txn(cursor._cursor)
 	if _txn != nil {

@@ -1,8 +1,8 @@
 package mdb
 
 import (
-	"os"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 

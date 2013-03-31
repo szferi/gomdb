@@ -43,18 +43,18 @@ var (
 	ErrNotFound        error = Errno(-30798)
 	ErrPageNotFound    error = Errno(-30797)
 	ErrCorrupted       error = Errno(-30796)
-	ErrPanic           error      = Errno(-30795)
-	ErrVersionMismatch  error     = Errno(-30794)
-	ErrInvalid           error    = Errno(-30793)
-	ErrMapFull            error   = Errno(-30792)
-	ErrDbsFull             error  = Errno(-30791)
-	ErrReadersFull          error = Errno(-30790)
-	ErrTlsFull              error = Errno(-30789)
-	ErrTxnFull              error = Errno(-30788)
-	ErrCursorFull           error = Errno(-30787)
-	ErrPageFull             error = Errno(-30786)
-	ErrMapResized           error = Errno(-30785)
-	ErrIncompatibile        error = Errno(-30784)
+	ErrPanic           error = Errno(-30795)
+	ErrVersionMismatch error = Errno(-30794)
+	ErrInvalid         error = Errno(-30793)
+	ErrMapFull         error = Errno(-30792)
+	ErrDbsFull         error = Errno(-30791)
+	ErrReadersFull     error = Errno(-30790)
+	ErrTlsFull         error = Errno(-30789)
+	ErrTxnFull         error = Errno(-30788)
+	ErrCursorFull      error = Errno(-30787)
+	ErrPageFull        error = Errno(-30786)
+	ErrMapResized      error = Errno(-30785)
+	ErrIncompatibile   error = Errno(-30784)
 )
 
 func Version() string {
@@ -136,11 +136,11 @@ func (env *Env) Stat() (*Stat, error) {
 }
 
 type Info struct {
-	MapSize uint64 // Size of the data memory map
-	LastPNO uint64 // ID of the last used page
-	LastTxnID uint64 // ID of the last committed transaction
-	MaxReaders uint // maximum number of threads for the environment
-	NumReaders uint // maximum number of threads used in the environment
+	MapSize    uint64 // Size of the data memory map
+	LastPNO    uint64 // ID of the last used page
+	LastTxnID  uint64 // ID of the last committed transaction
+	MaxReaders uint   // maximum number of threads for the environment
+	NumReaders uint   // maximum number of threads used in the environment
 }
 
 func (env *Env) Info() (*Info, error) {
@@ -150,8 +150,8 @@ func (env *Env) Info() (*Info, error) {
 		return nil, Errno(ret)
 	}
 	info := Info{MapSize: uint64(_info.me_mapsize),
-		LastPNO: uint64(_info.me_last_pgno),
-		LastTxnID: uint64(_info.me_last_txnid),
+		LastPNO:    uint64(_info.me_last_pgno),
+		LastTxnID:  uint64(_info.me_last_txnid),
 		MaxReaders: uint(_info.me_maxreaders),
 		NumReaders: uint(_info.me_numreaders)}
 	return &info, nil
@@ -220,4 +220,3 @@ func (env *Env) SetMaxDBs(size DBI) error {
 func (env *Env) DBIClose(dbi DBI) {
 	C.mdb_dbi_close(env._env, C.MDB_dbi(dbi))
 }
-

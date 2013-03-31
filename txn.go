@@ -16,22 +16,22 @@ import (
 
 // DBIOpen Database Flags
 const (
-	REVERSEKEY  = C.MDB_REVERSEKEY // use reverse string keys
-	DUPSORT     = C.MDB_DUPSORT // use sorted duplicates
+	REVERSEKEY = C.MDB_REVERSEKEY // use reverse string keys
+	DUPSORT    = C.MDB_DUPSORT    // use sorted duplicates
 	INTEGERKEY = C.MDB_INTEGERKEY // numeric keys in native byte order. The keys must all be of the same size.
-	DUPFIXED = C.MDB_DUPFIXED // with DUPSORT, sorted dup items have fixed size
+	DUPFIXED   = C.MDB_DUPFIXED   // with DUPSORT, sorted dup items have fixed size
 	INTEGERDUP = C.MDB_INTEGERDUP // with DUPSORT, dups are numeric in native byte order
 	REVERSEDUP = C.MDB_REVERSEDUP // with DUPSORT, use reverse string dups 
-	CREATE = C.MDB_CREATE // create DB if not already existing
+	CREATE     = C.MDB_CREATE     // create DB if not already existing
 )
 
 // put flags
 const (
-	NODUPDATA = C.MDB_NODUPDATA
+	NODUPDATA   = C.MDB_NODUPDATA
 	NOOVERWRITE = C.MDB_NOOVERWRITE
-	RESERVE = C.MDB_RESERVE
-	APPEND = C.MDB_APPEND
-	APPENDDUP = C.MDB_APPENDDUP
+	RESERVE     = C.MDB_RESERVE
+	APPEND      = C.MDB_APPEND
+	APPENDDUP   = C.MDB_APPENDDUP
 )
 
 // Txn is Opaque structure for a transaction handle. 
@@ -41,7 +41,7 @@ type Txn struct {
 	_txn *C.MDB_txn
 }
 
-func (env *Env) BeginTxn(parent *Txn, flags uint) (* Txn, error) {
+func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
 	var _txn *C.MDB_txn
 	ret := C.mdb_txn_begin(env._env, parent._txn, C.uint(flags), &_txn)
 	if ret != SUCCESS {
@@ -156,7 +156,6 @@ func (txn *Txn) Del(dbi DBI, key []byte, val []byte) error {
 	return nil
 }
 
-
 type Cursor struct {
 	_cursor *C.MDB_cursor
 }
@@ -177,5 +176,3 @@ func (txn *Txn) CursorRenew(cursor *Cursor) error {
 	}
 	return nil
 }
-
-
