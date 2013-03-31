@@ -28,7 +28,6 @@ const (
 // put flags
 const (
 	NODUPDATA = C.MDB_NODUPDATA
-	DUPSORT = C.MDB_DUBSORT
 	NOOVERWRITE = C.MDB_NOOVERWRITE
 	RESERVE = C.MDB_RESERVE
 	APPEND = C.MDB_APPEND
@@ -110,6 +109,11 @@ func (txn *Txn) Drop(dbi DBI, del int) error {
 	return nil
 }
 
+// func (txn *Txn) SetCompare(dbi DBI, comp *C.MDB_comp_func) error
+// func (txn *Txn) SetDupSort(dbi DBI, comp *C.MDB_comp_func) error
+// func (txn *Txn) SetRelFunc(dbi DBI, rel *C.MDB_rel_func) error
+// func (txn *Txn) SetRelCtx(dbi DBI, void *) error
+
 func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 	var ckey *C.MDB_val
 	ckey.mv_size = C.size_t(len(key))
@@ -119,7 +123,7 @@ func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 	if ret != SUCCESS {
 		return nil, Errno(ret)
 	}
-	val = C.GoBytes(cval.mv_data, cval.mv_size)
+	val := C.GoBytes(cval.mv_data, C.int(cval.mv_size))
 	return val, nil
 }
 
@@ -152,11 +156,12 @@ func (txn *Txn) Del(dbi DBI, key []byte, val []byte) error {
 	return nil
 }
 
+
 type Cursor struct {
 	_cursor *C.MDB_cursor
 }
 
-func (txn *) CursorOpen(dbi DBI) (*Cursor, error) {
+func (txn *Txn) CursorOpen(dbi DBI) (*Cursor, error) {
 	var _cursor *C.MDB_cursor
 	ret := C.mdb_cursor_open(txn._txn, C.MDB_dbi(dbi), &_cursor)
 	if ret != SUCCESS {
@@ -165,10 +170,12 @@ func (txn *) CursorOpen(dbi DBI) (*Cursor, error) {
 	return &Cursor{_cursor}, nil
 }
 
-func (txn *) CursorRenew(cursor *Cursor) error {
+func (txn *Txn) CursorRenew(cursor *Cursor) error {
 	ret := C.mdb_cursor_renew(txn._txn, cursor._cursor)
 	if ret != SUCCESS {
 		return Errno(ret)
 	}
 	return nil
 }
+
+
