@@ -22,26 +22,24 @@ func TestTest1(t *testing.T) {
 	}
 	t.Logf("Path: %s", path)
 	err = os.MkdirAll(path, 0770)
+	defer os.RemoveAll(path)
 	if err != nil {
 		t.Fatalf("Cannot create directory: %s", path)
 	}
 	err = env.Open(path, FIXEDMAP, 0664)
+	defer env.Close()
 	if err != nil {
-		os.RemoveAll(path)
 		t.Fatalf("Cannot open environment: %s", err)
 	}
 	var txn *Txn
 	txn, err = env.BeginTxn(nil, 0)
 	if err != nil {
-		env.Close()
-		os.RemoveAll(path)
 		t.Fatalf("Cannot begin transaction: %s", err)
 	}
 	var dbi DBI
 	dbi, err = txn.DBIOpen(nil, 0)
+	defer env.DBIClose(dbi)
 	if err != nil {
-		env.Close()
-		os.RemoveAll(path)
 		t.Fatalf("Cannot create DBI %s", err)
 	}
 	var data = map[string]string{}
@@ -55,24 +53,16 @@ func TestTest1(t *testing.T) {
 		err = txn.Put(dbi, []byte(key), []byte(val), NOOVERWRITE)
 		if err != nil {
 			txn.Abort()
-			env.DBIClose(dbi)
-			env.Close()
-			os.RemoveAll(path)
 			t.Fatalf("Error during put: %s", err)
 		}
 	}
 	err = txn.Commit()
 	if err != nil {
 		txn.Abort()
-		env.DBIClose(dbi)
-		env.Close()
-		os.RemoveAll(path)
 		t.Fatalf("Cannot commit %s", err)
 	}
 	stat, err := env.Stat()
 	if err != nil {
-		env.DBIClose(dbi)
-		env.Close()
 		t.Fatalf("Cannot get stat %s", err)
 	}
 	t.Logf("%+v", stat)
@@ -81,18 +71,13 @@ func TestTest1(t *testing.T) {
 	}
 	txn, err = env.BeginTxn(nil, 0)
 	if err != nil {
-		env.DBIClose(dbi)
-		env.Close()
-		os.RemoveAll(path)
 		t.Fatalf("Cannot begin transaction: %s", err)
 	}
 	var cursor *Cursor
 	cursor, err = txn.CursorOpen(dbi)
 	if err != nil {
+		cursor.Close()
 		txn.Abort()
-		env.DBIClose(dbi)
-		env.Close()
-		os.RemoveAll(path)
 		t.Fatalf("Error during cursor open %s", err)
 	}
 	/*
@@ -132,11 +117,4 @@ func TestTest1(t *testing.T) {
 	}
 	cursor.Close()
 	txn.Abort()
-	env.DBIClose(dbi)
-	err = env.Close()
-	if err != nil {
-		t.Errorf("Error during close of environment: %s", err)
-	}
-	// clean up
-	os.RemoveAll(path)
 }
