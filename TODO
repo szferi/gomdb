@@ -1,0 +1,5 @@
+- Idiomatic Get, Put, Del using god
+- Handle go *Cursor close with txn.Commit and txn.Abort transparently
+- More unit test
+- Benchmark
+- Static linking of liblmdb?
