@@ -121,11 +121,6 @@ func (txn *Txn) Drop(dbi DBI, del int) error {
 	return nil
 }
 
-// func (txn *Txn) SetCompare(dbi DBI, comp *C.MDB_comp_func) error
-// func (txn *Txn) SetDupSort(dbi DBI, comp *C.MDB_comp_func) error
-// func (txn *Txn) SetRelFunc(dbi DBI, rel *C.MDB_rel_func) error
-// func (txn *Txn) SetRelCtx(dbi DBI, void *) error
-
 func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
 		mv_data: unsafe.Pointer(&key[0])}
@@ -187,3 +182,24 @@ func (txn *Txn) CursorRenew(cursor *Cursor) error {
 	}
 	return nil
 }
+
+/*
+type CmpFunc func(a, b []byte) int
+
+func (txn *Txn) SetCompare(dbi DBI, cmp CmpFunc) error {
+	f := func(a, b *C.MDB_val) C.int {
+		ga := C.GoBytes(a.mv_data, C.int(a.mv_size))
+		gb := C.GoBytes(a.mv_data, C.int(a.mv_size))
+		return C.int(cmp(ga, gb))
+	}
+	ret := C.mdb_set_compare(txn._txn, C.MDB_dbi(dbi), *unsafe.Pointer(&f))
+	if ret != SUCCESS {
+		return Errno(ret)
+	}
+	return nil
+}
+*/
+// func (txn *Txn) SetDupSort(dbi DBI, comp *C.MDB_comp_func) error
+// func (txn *Txn) SetRelFunc(dbi DBI, rel *C.MDB_rel_func) error
+// func (txn *Txn) SetRelCtx(dbi DBI, void *) error
+
