@@ -11,8 +11,11 @@ package mdb
 import "C"
 
 import (
+	"errors"
 	"math"
 	"unsafe"
+	"bytes"
+	"encoding/gob"
 )
 
 // DBIOpen Database Flags
@@ -133,6 +136,29 @@ func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 	return val, nil
 }
 
+func (txn *Txn) GetGo(dbi DBI, key interface{}) (interface{}, error) {
+	var key_buffer bytes.Buffer
+	encoder := gob.NewEncoder(&key_buffer)
+	err := encoder.Encode(key)
+	if err != nil {
+		return nil, errors.New("Cannot encode key")
+	}
+	gkey := key_buffer.Bytes()
+	var val []byte
+	val, err = txn.Get(dbi, gkey)
+	if err != nil {
+		return nil, err
+	}
+	val_buffer := bytes.NewReader(val)
+	decoder := gob.NewDecoder(val_buffer)
+	var gval interface {}
+	err = decoder.Decode(gval)
+	if err != nil {
+		return nil, errors.New("Cannot decode value")
+	}
+	return gval, nil
+}
+
 func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
 	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
 		mv_data: unsafe.Pointer(&key[0])}
@@ -143,6 +169,22 @@ func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
 		return Errno(ret)
 	}
 	return nil
+}
+
+func (txn *Txn) PutGo(dbi DBI, key, val interface {}, flags uint) error {
+	var bkey bytes.Buffer
+	encoder := gob.NewEncoder(&bkey)
+	err := encoder.Encode(key)
+	if err != nil {
+		return errors.New("Cannot encode key")
+	}
+	var bval bytes.Buffer
+	encoder = gob.NewEncoder(&bval)
+	err = encoder.Encode(val)
+	if err != nil {
+		return errors.New("Cannot encode val")
+	}
+	return txn.Put(dbi, bkey.Bytes(), bval.Bytes(), flags)
 }
 
 func (txn *Txn) Del(dbi DBI, key []byte, val []byte) error {
