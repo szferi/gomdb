@@ -13,6 +13,8 @@ import "C"
 import (
 	"errors"
 	"unsafe"
+	"bytes"
+	"encoding/gob"
 )
 
 // MDB_cursor_op
@@ -61,7 +63,7 @@ func (cursor *Cursor) DBI() DBI {
 	return DBI(_dbi)
 }
 
-func (cursor *Cursor) Get(set_key []byte, op uint) (key []byte, val []byte, err error) {
+func (cursor *Cursor) Get(set_key []byte, op uint) (key, val []byte, err error) {
 	var ckey C.MDB_val
 	var cval C.MDB_val
 	if set_key != nil && op == SET {
@@ -91,7 +93,44 @@ func (cursor *Cursor) Get(set_key []byte, op uint) (key []byte, val []byte, err 
 	return
 }
 
-func (cursor *Cursor) Put(key []byte, val []byte, flags uint) error {
+func (cursor *Cursor) GetGo(set_key interface {}, op uint) (key, val interface {}, err error) {
+	key = nil
+	val = nil
+	var bset_key []byte
+	if set_key != nil {
+		var key_buffer bytes.Buffer
+		encoder := gob.NewEncoder(&key_buffer)
+		err = encoder.Encode(set_key)
+		if err != nil {
+			err = errors.New("Cannot endode set_key")
+			return
+		}
+		bset_key = key_buffer.Bytes()
+	}
+	bkey, bval, err := cursor.Get(bset_key, op)
+	if err != nil {
+		return
+	}
+	buf := bytes.NewReader(bkey)
+	decoder := gob.NewDecoder(buf)
+	err = decoder.Decode(key)
+	if err != nil {
+		key = nil
+		err = errors.New("Cannot decode key")
+		return
+	}
+	buf = bytes.NewReader(bval)
+	decoder = gob.NewDecoder(buf)
+	err = decoder.Decode(val)
+	if err != nil {
+		val = nil
+		err = errors.New("Cannot decode key")
+		return
+	}
+	return
+}
+
+func (cursor *Cursor) Put(key, val []byte, flags uint) error {
 	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
 		mv_data: unsafe.Pointer(&key[0])}
 	cval := &C.MDB_val{mv_size: C.size_t(len(val)),
@@ -101,6 +140,22 @@ func (cursor *Cursor) Put(key []byte, val []byte, flags uint) error {
 		return Errno(ret)
 	}
 	return nil
+}
+
+func (cursor *Cursor) PutGo(key, val interface {}, flags uint) error {
+	var bkey bytes.Buffer
+	encoder := gob.NewEncoder(&bkey)
+	err := encoder.Encode(key)
+	if err != nil {
+		return errors.New("Cannot encode key")
+	}
+	var bval bytes.Buffer
+	encoder = gob.NewEncoder(&bval)
+	err = encoder.Encode(val)
+	if err != nil {
+		return errors.New("Cannot encode val")
+	}
+	return cursor.Put(bkey.Bytes(), bval.Bytes(), flags)
 }
 
 func (cursor *Cursor) Del(flags uint) error {

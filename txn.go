@@ -187,7 +187,7 @@ func (txn *Txn) PutGo(dbi DBI, key, val interface {}, flags uint) error {
 	return txn.Put(dbi, bkey.Bytes(), bval.Bytes(), flags)
 }
 
-func (txn *Txn) Del(dbi DBI, key []byte, val []byte) error {
+func (txn *Txn) Del(dbi DBI, key, val []byte) error {
 	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
 		mv_data: unsafe.Pointer(&key[0])}
 	var cval *C.MDB_val
@@ -202,6 +202,28 @@ func (txn *Txn) Del(dbi DBI, key []byte, val []byte) error {
 		return Errno(ret)
 	}
 	return nil
+}
+
+func (txn *Txn) DelGo(dbi DBI, key, val interface {}) error {
+	var bkey bytes.Buffer
+	encoder := gob.NewEncoder(&bkey)
+	err := encoder.Encode(key)
+	if err != nil {
+		return errors.New("Cannot encode key")
+	}
+	var bval []byte
+	if val == nil {
+		bval = nil
+	} else {
+		var val_buffer bytes.Buffer
+		encoder = gob.NewEncoder(&val_buffer)
+		err = encoder.Encode(val)
+		if err != nil {
+			return errors.New("Cannot encode val")
+		}
+		bval = val_buffer.Bytes()
+	}
+	return txn.Del(dbi, bkey.Bytes(), bval)
 }
 
 type Cursor struct {
