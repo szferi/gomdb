@@ -143,12 +143,12 @@ func (txn *Txn) GetGo(dbi DBI, key, val interface{}) error {
 		return err
 	}
 	gkey := key_buffer.Bytes()
-	var val []byte
+	var bval []byte
 	val, err = txn.Get(dbi, gkey)
 	if err != nil {
 		return err
 	}
-	val_buffer := bytes.NewReader(val)
+	val_buffer := bytes.NewReader(bval)
 	decoder := gob.NewDecoder(val_buffer)
 	err = decoder.Decode(val)
 	if err != nil {
