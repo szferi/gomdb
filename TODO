@@ -1,9 +1,0 @@
-- Idiomatic Get, Put, Del using god
-- Handle go *Cursor close with txn.Commit and txn.Abort transparently
-- More unit test
-- Benchmark
-- Static linking of liblmdb?
-
-- Unfortunately you can't pass a Go func to C code and have the C code
-call it. According to go-wiki: http://code.google.com/p/go-wiki/wiki/cgo
-only C-GO-C way allowed but it requires more thinking.
