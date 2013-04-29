@@ -2,11 +2,10 @@ gomdb
 =====
 
 Go wrapper for OpenLDAP Lightning Memory-Mapped Database (LMDB).
-(progress: 16/43)
+Read more about LMDB here: http://symas.com/mdb/
 
-Install
+Build
 =======
-
 
 `git clone -b mdb.master --single-branch git://git.openldap.org/openldap.git`
 
@@ -20,4 +19,13 @@ It will install to /usr/local
 
 `go test -v`
 
+
+TODO
+======
+
+ * write more documentation
+ * write more unit test
+ * benchmark
+ * figure out how can you write go binding for `MDB_comp_func` and `MDB_rel_func`
+ * Handle go `*Cursor` close with `txn.Commit` and `txn.Abort` transparently
 
