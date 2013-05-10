@@ -4,6 +4,8 @@ gomdb
 Go wrapper for OpenLDAP Lightning Memory-Mapped Database (LMDB).
 Read more about LMDB here: http://symas.com/mdb/
 
+GoDoc available here: http://godoc.org/github.com/szferi/gomdb
+
 Build
 =======
 
@@ -18,6 +20,7 @@ It will install to /usr/local
 `export LD_LIBRARY_PATH=/usr/local/lib`
 
 `go test -v`
+
 
 
 TODO
