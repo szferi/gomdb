@@ -2,7 +2,7 @@ package mdb
 
 /*
 #cgo LDFLAGS: -L/usr/local/lib -llmdb
-#cgo CFLAGS: -I/usr/local
+#cgo CFLAGS: -I/usr/local/include
 
 #include <stdlib.h>
 #include <stdio.h>
