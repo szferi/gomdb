@@ -126,8 +126,8 @@ func (txn *Txn) Drop(dbi DBI, del int) error {
 func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
 		mv_data: unsafe.Pointer(&key[0])}
-	var cval *C.MDB_val
-	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), ckey, cval)
+	var cval C.MDB_val
+	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), ckey, &cval)
 	if ret != SUCCESS {
 		return nil, Errno(ret)
 	}
