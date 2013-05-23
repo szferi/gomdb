@@ -115,6 +115,15 @@ func TestTest1(t *testing.T) {
 		}
 	}
 	cursor.Close()
+	bval, err = txn.Get(dbi, []byte("Key-0"))
+	if err != nil {
+		txn.Abort()
+		t.Fatalf("Error during txn get %s", err)
+	}
+	if string(bval) != "Val-0" {
+		txn.Abort()
+		t.Fatalf("Invalid txn get %s", string(bval))
+	}
 	txn.Abort()
 }
 
