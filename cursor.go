@@ -64,6 +64,11 @@ func (cursor *Cursor) DBI() DBI {
 	return DBI(_dbi)
 }
 
+// Retrieves the low-level MDB cursor.
+func (cursor *Cursor) MdbCursor() *C.MDB_cursor {
+	return cursor._cursor
+}
+
 func (cursor *Cursor) Get(set_key []byte, op uint) (key, val []byte, err error) {
 	var ckey C.MDB_val
 	var cval C.MDB_val
