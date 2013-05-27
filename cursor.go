@@ -72,19 +72,9 @@ func (cursor *Cursor) MdbCursor() *C.MDB_cursor {
 func (cursor *Cursor) Get(set_key []byte, op uint) (key, val []byte, err error) {
 	var ckey C.MDB_val
 	var cval C.MDB_val
-	if set_key != nil && op == SET {
-		var cset_key *C.MDB_val
-		cset_key = &C.MDB_val{mv_size: C.size_t(len(set_key)),
-			mv_data: unsafe.Pointer(&set_key[0])}
-		ret := C.mdb_cursor_get(cursor._cursor, cset_key, &cval, C.MDB_cursor_op(op))
-		if ret != SUCCESS {
-			err = Errno(ret)
-			key = nil
-			val = nil
-			return
-		}
-		key = set_key
-		val = C.GoBytes(cval.mv_data, C.int(cval.mv_size))
+	if set_key != nil && (op == SET || op == SET_KEY || op == SET_RANGE) {
+		ckey.mv_size = C.size_t(len(set_key))
+		ckey.mv_data = unsafe.Pointer(&set_key[0])
 	}
 	ret := C.mdb_cursor_get(cursor._cursor, &ckey, &cval, C.MDB_cursor_op(op))
 	if ret != SUCCESS {
