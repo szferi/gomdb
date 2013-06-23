@@ -28,6 +28,7 @@ const (
 	NOMETASYNC = C.MDB_NOMETASYNC // don't fsync metapage after commit
 	WRITEMAP   = C.MDB_WRITEMAP   // use writable mmap
 	MAPASYNC   = C.MDB_MAPASYNC   // use asynchronous msync when MDB_WRITEMAP is use
+	NOTLS      = C.MDB_NOTLS      // tie reader locktable slots to Txn objects instead of threads
 )
 
 type DBI uint
@@ -63,14 +64,14 @@ func Version() string {
 	return C.GoString(ver_str)
 }
 
-// Env is opaque structure for a database environment. 
-// A DB environment supports multiple databases, all residing in the 
+// Env is opaque structure for a database environment.
+// A DB environment supports multiple databases, all residing in the
 // same shared-memory map.
 type Env struct {
 	_env *C.MDB_env
 }
 
-// Create an MDB environment handle. 
+// Create an MDB environment handle.
 func NewEnv() (*Env, error) {
 	var _env *C.MDB_env
 	ret := C.mdb_env_create(&_env)
