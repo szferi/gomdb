@@ -194,7 +194,7 @@ func (env *Env) Path() (string, error) {
 	return C.GoString(cpath), nil
 }
 
-func (env *Env) SetMapSize(size uint) error {
+func (env *Env) SetMapSize(size uint64) error {
 	ret := C.mdb_env_set_mapsize(env._env, C.size_t(size))
 	if ret != SUCCESS {
 		return Errno(ret)
