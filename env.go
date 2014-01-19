@@ -85,7 +85,7 @@ func NewEnv() (*Env, error) {
 func (env *Env) Open(path string, flags uint, mode uint) error {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
-	ret := C.mdb_env_open(env._env, cpath, C.uint(flags), C.mdb_mode_t(mode))
+	ret := C.mdb_env_open(env._env, cpath, C.uint(NOTLS|flags), C.mdb_mode_t(mode))
 	if ret != SUCCESS {
 		return Errno(ret)
 	}
