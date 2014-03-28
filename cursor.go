@@ -78,7 +78,7 @@ func (cursor *Cursor) Get(set_key []byte, op uint) (key, val []byte, err error) 
 	}
 	ret := C.mdb_cursor_get(cursor._cursor, &ckey, &cval, C.MDB_cursor_op(op))
 	if ret != SUCCESS {
-		err = Errno(ret)
+		err = errno(ret)
 		key = nil
 		val = nil
 		return
@@ -126,10 +126,7 @@ func (cursor *Cursor) Put(key, val []byte, flags uint) error {
 	cval := &C.MDB_val{mv_size: C.size_t(len(val)),
 		mv_data: unsafe.Pointer(&val[0])}
 	ret := C.mdb_cursor_put(cursor._cursor, ckey, cval, C.uint(flags))
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 
 func (cursor *Cursor) PutGo(key, val interface {}, flags uint) error {
@@ -150,17 +147,14 @@ func (cursor *Cursor) PutGo(key, val interface {}, flags uint) error {
 
 func (cursor *Cursor) Del(flags uint) error {
 	ret := C.mdb_cursor_del(cursor._cursor, C.uint(flags))
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 
 func (cursor *Cursor) Count() (uint64, error) {
 	var _size C.size_t
 	ret := C.mdb_cursor_count(cursor._cursor, &_size)
 	if ret != SUCCESS {
-		return 0, Errno(ret)
+		return 0, errno(ret)
 	}
 	return uint64(_size), nil
 }
