@@ -117,7 +117,7 @@ type Stat struct {
 	Depth         uint   // Depth (height) of the B-tree
 	BranchPages   uint64 // Number of internal (non-leaf) pages
 	LeafPages     uint64 // Number of leaf pages
-	OwerflowPages uint64 // Number of overflow pages
+	OverflowPages uint64 // Number of overflow pages
 	Entries       uint64 // Number of data items
 }
 
@@ -131,7 +131,7 @@ func (env *Env) Stat() (*Stat, error) {
 		Depth:         uint(_stat.ms_depth),
 		BranchPages:   uint64(_stat.ms_branch_pages),
 		LeafPages:     uint64(_stat.ms_leaf_pages),
-		OwerflowPages: uint64(_stat.ms_overflow_pages),
+		OverflowPages: uint64(_stat.ms_overflow_pages),
 		Entries:       uint64(_stat.ms_entries)}
 	return &stat, nil
 }

@@ -117,7 +117,7 @@ func (txn *Txn) Stat(dbi DBI) (*Stat, error) {
 		Depth:         uint(_stat.ms_depth),
 		BranchPages:   uint64(_stat.ms_branch_pages),
 		LeafPages:     uint64(_stat.ms_leaf_pages),
-		OwerflowPages: uint64(_stat.ms_overflow_pages),
+		OverflowPages: uint64(_stat.ms_overflow_pages),
 		Entries:       uint64(_stat.ms_entries)}
 	return &stat, nil
 }
