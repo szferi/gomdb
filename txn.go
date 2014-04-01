@@ -4,8 +4,7 @@ package mdb
 #cgo CFLAGS: -pthread -W -Wall -Wno-unused-parameter -Wbad-function-cast -O2 -g
 #include <stdlib.h>
 #include <stdio.h>
-#include "src/lmdb.h"
-#include "src/midl.h"
+#include "lmdb.h"
 */
 import "C"
 
@@ -24,7 +23,7 @@ const (
 	INTEGERKEY = C.MDB_INTEGERKEY // numeric keys in native byte order. The keys must all be of the same size.
 	DUPFIXED   = C.MDB_DUPFIXED   // with DUPSORT, sorted dup items have fixed size
 	INTEGERDUP = C.MDB_INTEGERDUP // with DUPSORT, dups are numeric in native byte order
-	REVERSEDUP = C.MDB_REVERSEDUP // with DUPSORT, use reverse string dups 
+	REVERSEDUP = C.MDB_REVERSEDUP // with DUPSORT, use reverse string dups
 	CREATE     = C.MDB_CREATE     // create DB if not already existing
 )
 
@@ -37,30 +36,11 @@ const (
 	APPENDDUP   = C.MDB_APPENDDUP
 )
 
-// Txn is Opaque structure for a transaction handle. 
-// All database operations require a transaction handle. 
+// Txn is Opaque structure for a transaction handle.
+// All database operations require a transaction handle.
 // Transactions may be read-only or read-write.
 type Txn struct {
 	_txn *C.MDB_txn
-}
-
-func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
-	var _txn *C.MDB_txn
-	var ptxn *C.MDB_txn
-	if parent == nil {
-		ptxn = nil
-	} else {
-		ptxn = parent._txn
-	}
-	if flags&RDONLY == 0 {
-		runtime.LockOSThread()
-	}
-	ret := C.mdb_txn_begin(env._env, ptxn, C.uint(flags), &_txn)
-	if ret != SUCCESS {
-		runtime.UnlockOSThread()
-		return nil, Errno(ret)
-	}
-	return &Txn{_txn}, nil
 }
 
 func (txn *Txn) Commit() error {
@@ -175,7 +155,7 @@ func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
 	return nil
 }
 
-func (txn *Txn) PutGo(dbi DBI, key, val interface {}, flags uint) error {
+func (txn *Txn) PutGo(dbi DBI, key, val interface{}, flags uint) error {
 	var bkey bytes.Buffer
 	encoder := gob.NewEncoder(&bkey)
 	err := encoder.Encode(key)
@@ -208,7 +188,7 @@ func (txn *Txn) Del(dbi DBI, key, val []byte) error {
 	return nil
 }
 
-func (txn *Txn) DelGo(dbi DBI, key, val interface {}) error {
+func (txn *Txn) DelGo(dbi DBI, key, val interface{}) error {
 	var bkey bytes.Buffer
 	encoder := gob.NewEncoder(&bkey)
 	err := encoder.Encode(key)
@@ -270,4 +250,3 @@ func (txn *Txn) SetCompare(dbi DBI, cmp CmpFunc) error {
 // func (txn *Txn) SetDupSort(dbi DBI, comp *C.MDB_comp_func) error
 // func (txn *Txn) SetRelFunc(dbi DBI, rel *C.MDB_rel_func) error
 // func (txn *Txn) SetRelCtx(dbi DBI, void *) error
-
