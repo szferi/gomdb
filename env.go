@@ -4,15 +4,13 @@ package mdb
 #cgo CFLAGS: -pthread -W -Wall -Wno-unused-parameter -Wbad-function-cast -O2 -g
 #include <stdlib.h>
 #include <stdio.h>
-#include "src/lmdb.h"
-#include "src/midl.h"
-#include "src/midl.c"
-#include "src/mdb.c"
+#include "lmdb.h"
 */
 import "C"
 
 import (
 	"errors"
+	"runtime"
 	"unsafe"
 )
 
@@ -221,4 +219,23 @@ func (env *Env) SetMaxDBs(size DBI) error {
 
 func (env *Env) DBIClose(dbi DBI) {
 	C.mdb_dbi_close(env._env, C.MDB_dbi(dbi))
+}
+
+func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
+	var _txn *C.MDB_txn
+	var ptxn *C.MDB_txn
+	if parent == nil {
+		ptxn = nil
+	} else {
+		ptxn = parent._txn
+	}
+	if flags&RDONLY == 0 {
+		runtime.LockOSThread()
+	}
+	ret := C.mdb_txn_begin(env._env, ptxn, C.uint(flags), &_txn)
+	if ret != SUCCESS {
+		runtime.UnlockOSThread()
+		return nil, Errno(ret)
+	}
+	return &Txn{_txn}, nil
 }
