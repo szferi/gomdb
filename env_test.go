@@ -11,7 +11,7 @@ func TestEnvOpen(t *testing.T) {
 	if err != nil {
 		t.Errorf("Cannot create enviroment: %s", err)
 	}
-	err = env.Open("adsjgfadsfjg", FIXEDMAP, 0664)
+	err = env.Open("adsjgfadsfjg", 0, 0664)
 	if err == nil {
 		t.Errorf("should not be able to open")
 	}
@@ -23,7 +23,7 @@ func TestEnvOpen(t *testing.T) {
 	if err != nil {
 		t.Errorf("Cannot create directory: %s", path)
 	}
-	err = env.Open(path, FIXEDMAP, 0664)
+	err = env.Open(path, 0, 0664)
 	if err != nil {
 		t.Errorf("Cannot open environment: %s", err)
 	}
@@ -48,7 +48,7 @@ func setup(t *testing.T) *Env {
 	if err != nil {
 		t.Errorf("Cannot create directory: %s", path)
 	}
-	err = env.Open(path, FIXEDMAP, 0664)
+	err = env.Open(path, 0, 0664)
 	if err != nil {
 		t.Errorf("Cannot open environment: %s", err)
 	}
