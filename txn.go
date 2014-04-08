@@ -118,37 +118,35 @@ func (txn *Txn) Drop(dbi DBI, del int) error {
 }
 
 func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
-	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
-		mv_data: unsafe.Pointer(&key[0])}
-	var cval C.MDB_val
-	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), ckey, &cval)
-	if ret != SUCCESS {
-		return nil, errno(ret)
+	val, err := txn.GetVal(dbi, key)
+	if err != nil {
+		return nil, err
 	}
-	val := C.GoBytes(cval.mv_data, C.int(cval.mv_size))
-	return val, nil
+	return val.Bytes(), nil
+}
+
+func (txn *Txn) GetVal(dbi DBI, key []byte) (Val, error) {
+	ckey := Wrap(key)
+	var cval Val
+	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval))
+	return cval, errno(ret)
 }
 
 func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
-	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
-		mv_data: unsafe.Pointer(&key[0])}
-	cval := &C.MDB_val{mv_size: C.size_t(len(val)),
-		mv_data: unsafe.Pointer(&val[0])}
-	ret := C.mdb_put(txn._txn, C.MDB_dbi(dbi), ckey, cval, C.uint(flags))
+	ckey := Wrap(key)
+	cval := Wrap(val)
+	ret := C.mdb_put(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval), C.uint(flags))
 	return errno(ret)
 }
 
 func (txn *Txn) Del(dbi DBI, key, val []byte) error {
-	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
-		mv_data: unsafe.Pointer(&key[0])}
-	var cval *C.MDB_val
+	ckey := Wrap(key)
 	if val == nil {
-		cval = nil
-	} else {
-		cval = &C.MDB_val{mv_size: C.size_t(len(val)),
-			mv_data: unsafe.Pointer(&val[0])}
+		ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(&ckey), nil)
+		return errno(ret)
 	}
-	ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), ckey, cval)
+	cval := Wrap(val)
+	ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval))
 	return errno(ret)
 }
 

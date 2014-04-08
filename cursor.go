@@ -10,7 +10,6 @@ import "C"
 
 import (
 	"errors"
-	"unsafe"
 )
 
 // MDB_cursor_op
@@ -65,31 +64,24 @@ func (cursor *Cursor) MdbCursor() *C.MDB_cursor {
 }
 
 func (cursor *Cursor) Get(set_key []byte, op uint) (key, val []byte, err error) {
-	var ckey C.MDB_val
-	var cval C.MDB_val
-	if set_key != nil && (op == SET || op == SET_KEY || op == SET_RANGE) {
-		ckey.mv_size = C.size_t(len(set_key))
-		ckey.mv_data = unsafe.Pointer(&set_key[0])
+	k, v, err := cursor.GetVal(set_key, op)
+	if err != nil {
+		return nil, nil, err
 	}
-	ret := C.mdb_cursor_get(cursor._cursor, &ckey, &cval, C.MDB_cursor_op(op))
-	if ret != SUCCESS {
-		err = errno(ret)
-		key = nil
-		val = nil
-		return
-	}
-	err = nil
-	key = C.GoBytes(ckey.mv_data, C.int(ckey.mv_size))
-	val = C.GoBytes(cval.mv_data, C.int(cval.mv_size))
-	return
+	return k.Bytes(), v.Bytes(), nil
+}
+
+func (cursor *Cursor) GetVal(key []byte, op uint) (Val, Val, error) {
+	ckey := Wrap(key)
+	var cval Val
+	ret := C.mdb_cursor_get(cursor._cursor, (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval), C.MDB_cursor_op(op))
+	return ckey, cval, errno(ret)
 }
 
 func (cursor *Cursor) Put(key, val []byte, flags uint) error {
-	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
-		mv_data: unsafe.Pointer(&key[0])}
-	cval := &C.MDB_val{mv_size: C.size_t(len(val)),
-		mv_data: unsafe.Pointer(&val[0])}
-	ret := C.mdb_cursor_put(cursor._cursor, ckey, cval, C.uint(flags))
+	ckey := Wrap(key)
+	cval := Wrap(val)
+	ret := C.mdb_cursor_put(cursor._cursor, (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval), C.uint(flags))
 	return errno(ret)
 }
 

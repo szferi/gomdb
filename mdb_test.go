@@ -93,10 +93,10 @@ func TestTest1(t *testing.T) {
 		var d string
 		var ok bool
 		if d, ok = data[skey]; !ok {
-			t.Errorf("Cannot found: %s", skey)
+			t.Errorf("Cannot found: %q", skey)
 		}
 		if d != sval {
-			t.Errorf("Data missmatch: %s <> %s", sval, d)
+			t.Errorf("Data missmatch: %q <> %q", sval, d)
 		}
 	}
 	cursor.Close()
