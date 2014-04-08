@@ -11,8 +11,6 @@ package mdb
 import "C"
 
 import (
-	"bytes"
-	"encoding/gob"
 	"math"
 	"runtime"
 	"unsafe"
@@ -133,28 +131,6 @@ func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 	return val, nil
 }
 
-func (txn *Txn) GetGo(dbi DBI, key, val interface{}) error {
-	var key_buffer bytes.Buffer
-	encoder := gob.NewEncoder(&key_buffer)
-	err := encoder.Encode(key)
-	if err != nil {
-		return err
-	}
-	gkey := key_buffer.Bytes()
-	var bval []byte
-	val, err = txn.Get(dbi, gkey)
-	if err != nil {
-		return err
-	}
-	val_buffer := bytes.NewReader(bval)
-	decoder := gob.NewDecoder(val_buffer)
-	err = decoder.Decode(val)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
 	ckey := &C.MDB_val{mv_size: C.size_t(len(key)),
 		mv_data: unsafe.Pointer(&key[0])}
@@ -162,22 +138,6 @@ func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
 		mv_data: unsafe.Pointer(&val[0])}
 	ret := C.mdb_put(txn._txn, C.MDB_dbi(dbi), ckey, cval, C.uint(flags))
 	return errno(ret)
-}
-
-func (txn *Txn) PutGo(dbi DBI, key, val interface {}, flags uint) error {
-	var bkey bytes.Buffer
-	encoder := gob.NewEncoder(&bkey)
-	err := encoder.Encode(key)
-	if err != nil {
-		return err
-	}
-	var bval bytes.Buffer
-	encoder = gob.NewEncoder(&bval)
-	err = encoder.Encode(val)
-	if err != nil {
-		return err
-	}
-	return txn.Put(dbi, bkey.Bytes(), bval.Bytes(), flags)
 }
 
 func (txn *Txn) Del(dbi DBI, key, val []byte) error {
@@ -192,28 +152,6 @@ func (txn *Txn) Del(dbi DBI, key, val []byte) error {
 	}
 	ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), ckey, cval)
 	return errno(ret)
-}
-
-func (txn *Txn) DelGo(dbi DBI, key, val interface {}) error {
-	var bkey bytes.Buffer
-	encoder := gob.NewEncoder(&bkey)
-	err := encoder.Encode(key)
-	if err != nil {
-		return err
-	}
-	var bval []byte
-	if val == nil {
-		bval = nil
-	} else {
-		var val_buffer bytes.Buffer
-		encoder = gob.NewEncoder(&val_buffer)
-		err = encoder.Encode(val)
-		if err != nil {
-			return err
-		}
-		bval = val_buffer.Bytes()
-	}
-	return txn.Del(dbi, bkey.Bytes(), bval)
 }
 
 type Cursor struct {
