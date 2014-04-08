@@ -59,7 +59,7 @@ func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
 	ret := C.mdb_txn_begin(env._env, ptxn, C.uint(flags), &_txn)
 	if ret != SUCCESS {
 		runtime.UnlockOSThread()
-		return nil, Errno(ret)
+		return nil, errno(ret)
 	}
 	return &Txn{_txn}, nil
 }
@@ -67,10 +67,7 @@ func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
 func (txn *Txn) Commit() error {
 	ret := C.mdb_txn_commit(txn._txn)
 	runtime.UnlockOSThread()
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 
 func (txn *Txn) Abort() {
@@ -85,10 +82,7 @@ func (txn *Txn) Reset() {
 
 func (txn *Txn) Renew() error {
 	ret := C.mdb_txn_renew(txn._txn)
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 
 func (txn *Txn) DBIOpen(name *string, flags uint) (DBI, error) {
@@ -102,7 +96,7 @@ func (txn *Txn) DBIOpen(name *string, flags uint) (DBI, error) {
 	}
 	ret := C.mdb_dbi_open(txn._txn, cname, C.uint(flags), &_dbi)
 	if ret != SUCCESS {
-		return DBI(math.NaN()), Errno(ret)
+		return DBI(math.NaN()), errno(ret)
 	}
 	return DBI(_dbi), nil
 }
@@ -111,7 +105,7 @@ func (txn *Txn) Stat(dbi DBI) (*Stat, error) {
 	var _stat C.MDB_stat
 	ret := C.mdb_stat(txn._txn, C.MDB_dbi(dbi), &_stat)
 	if ret != SUCCESS {
-		return nil, Errno(ret)
+		return nil, errno(ret)
 	}
 	stat := Stat{PSize: uint(_stat.ms_psize),
 		Depth:         uint(_stat.ms_depth),
@@ -124,10 +118,7 @@ func (txn *Txn) Stat(dbi DBI) (*Stat, error) {
 
 func (txn *Txn) Drop(dbi DBI, del int) error {
 	ret := C.mdb_drop(txn._txn, C.MDB_dbi(dbi), C.int(del))
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 
 func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
@@ -136,7 +127,7 @@ func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 	var cval C.MDB_val
 	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), ckey, &cval)
 	if ret != SUCCESS {
-		return nil, Errno(ret)
+		return nil, errno(ret)
 	}
 	val := C.GoBytes(cval.mv_data, C.int(cval.mv_size))
 	return val, nil
@@ -170,10 +161,7 @@ func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
 	cval := &C.MDB_val{mv_size: C.size_t(len(val)),
 		mv_data: unsafe.Pointer(&val[0])}
 	ret := C.mdb_put(txn._txn, C.MDB_dbi(dbi), ckey, cval, C.uint(flags))
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 
 func (txn *Txn) PutGo(dbi DBI, key, val interface {}, flags uint) error {
@@ -203,10 +191,7 @@ func (txn *Txn) Del(dbi DBI, key, val []byte) error {
 			mv_data: unsafe.Pointer(&val[0])}
 	}
 	ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), ckey, cval)
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 
 func (txn *Txn) DelGo(dbi DBI, key, val interface {}) error {
@@ -239,17 +224,14 @@ func (txn *Txn) CursorOpen(dbi DBI) (*Cursor, error) {
 	var _cursor *C.MDB_cursor
 	ret := C.mdb_cursor_open(txn._txn, C.MDB_dbi(dbi), &_cursor)
 	if ret != SUCCESS {
-		return nil, Errno(ret)
+		return nil, errno(ret)
 	}
 	return &Cursor{_cursor}, nil
 }
 
 func (txn *Txn) CursorRenew(cursor *Cursor) error {
 	ret := C.mdb_cursor_renew(txn._txn, cursor._cursor)
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 
 /*
@@ -262,10 +244,7 @@ func (txn *Txn) SetCompare(dbi DBI, cmp CmpFunc) error {
 		return C.int(cmp(ga, gb))
 	}
 	ret := C.mdb_set_compare(txn._txn, C.MDB_dbi(dbi), *unsafe.Pointer(&f))
-	if ret != SUCCESS {
-		return Errno(ret)
-	}
-	return nil
+	return errno(ret)
 }
 */
 // func (txn *Txn) SetDupSort(dbi DBI, comp *C.MDB_comp_func) error
