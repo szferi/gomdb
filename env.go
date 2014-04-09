@@ -1,12 +1,3 @@
-/*
-a thin wrapper of the lmdb C library.
-
-Errors
-
-The errors returned by the mdb api will with few exceptions be of type Errno or
-syscall.Errno.  The only errors of type Errno returned are those defined by
-lmdb.h.  Other errnos like EINVAL will by of type syscall.Errno.
-*/
 package mdb
 
 /*
