@@ -1,21 +1,19 @@
 package mdb
 
 /*
-#cgo LDFLAGS: -L/usr/local/lib -llmdb
-#cgo CFLAGS: -I/usr/local/include
-
+#cgo CFLAGS: -pthread -W -Wall -Wno-unused-parameter -Wbad-function-cast -O2 -g
 #include <stdlib.h>
 #include <stdio.h>
-#include <lmdb.h>
+#include "lmdb.h"
 */
 import "C"
 
 import (
 	// "fmt"
-	"errors"
-	"unsafe"
 	"bytes"
 	"encoding/gob"
+	"errors"
+	"unsafe"
 )
 
 // MDB_cursor_op
@@ -89,7 +87,7 @@ func (cursor *Cursor) Get(set_key []byte, op uint) (key, val []byte, err error) 
 	return
 }
 
-func (cursor *Cursor) GetGo(set_key interface {}, op uint, key, val interface{}) error {
+func (cursor *Cursor) GetGo(set_key interface{}, op uint, key, val interface{}) error {
 	var err error
 	var bset_key []byte
 	if set_key != nil {
@@ -129,7 +127,7 @@ func (cursor *Cursor) Put(key, val []byte, flags uint) error {
 	return errno(ret)
 }
 
-func (cursor *Cursor) PutGo(key, val interface {}, flags uint) error {
+func (cursor *Cursor) PutGo(key, val interface{}, flags uint) error {
 	var bkey bytes.Buffer
 	encoder := gob.NewEncoder(&bkey)
 	err := encoder.Encode(key)
