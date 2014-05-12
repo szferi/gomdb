@@ -9,19 +9,9 @@ GoDoc available here: http://godoc.org/github.com/szferi/gomdb
 Build
 =======
 
-`git clone -b mdb.master --single-branch git://git.openldap.org/openldap.git`
+`go get github.com/szferi/gomdb`
 
-`make`
-
-`make install`
-
-It will install to /usr/local
-
-`export LD_LIBRARY_PATH=/usr/local/lib`
-
-`go test -v`
-
-
+There is no dependency on LMDB dynamic library.
 
 TODO
 ======
