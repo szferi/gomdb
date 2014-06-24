@@ -4610,7 +4610,16 @@ mdb_cmp_cint(const MDB_val *a, const MDB_val *b)
 	} while(!x && u > (unsigned short *)a->mv_data);
 	return x;
 #else
-	return memcmp(a->mv_data, b->mv_data, a->mv_size);
+	unsigned short *u, *c, *end;
+	int x;
+
+	end = (unsigned short *) ((char *) a->mv_data + a->mv_size);
+	u = (unsigned short *)a->mv_data;
+	c = (unsigned short *)b->mv_data;
+	do {
+		x = *u++ - *c++;
+	} while(!x && u < end);
+	return x;
 #endif
 }
 
@@ -7251,14 +7260,17 @@ mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst)
 static int
 mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 {
-	int			 rc;
-	indx_t			 i, j;
-	MDB_node		*srcnode;
+	MDB_page	*psrc, *pdst;
+	MDB_node	*srcnode;
 	MDB_val		 key, data;
-	unsigned	nkeys;
+	unsigned	 nkeys;
+	int			 rc;
+	indx_t		 i, j;
 
-	DPRINTF(("merging page %"Z"u into %"Z"u", csrc->mc_pg[csrc->mc_top]->mp_pgno,
-		cdst->mc_pg[cdst->mc_top]->mp_pgno));
+	psrc = csrc->mc_pg[csrc->mc_top];
+	pdst = cdst->mc_pg[cdst->mc_top];
+
+	DPRINTF(("merging page %"Z"u into %"Z"u", psrc->mp_pgno, pdst->mp_pgno));
 
 	mdb_cassert(csrc, csrc->mc_snum > 1);	/* can't merge root page */
 	mdb_cassert(csrc, cdst->mc_snum > 1);
@@ -7269,20 +7281,20 @@ mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 
 	/* Move all nodes from src to dst.
 	 */
-	j = nkeys = NUMKEYS(cdst->mc_pg[cdst->mc_top]);
-	if (IS_LEAF2(csrc->mc_pg[csrc->mc_top])) {
+	j = nkeys = NUMKEYS(pdst);
+	if (IS_LEAF2(psrc)) {
 		key.mv_size = csrc->mc_db->md_pad;
-		key.mv_data = METADATA(csrc->mc_pg[csrc->mc_top]);
-		for (i = 0; i < NUMKEYS(csrc->mc_pg[csrc->mc_top]); i++, j++) {
+		key.mv_data = METADATA(psrc);
+		for (i = 0; i < NUMKEYS(psrc); i++, j++) {
 			rc = mdb_node_add(cdst, j, &key, NULL, 0, 0);
 			if (rc != MDB_SUCCESS)
 				return rc;
 			key.mv_data = (char *)key.mv_data + key.mv_size;
 		}
 	} else {
-		for (i = 0; i < NUMKEYS(csrc->mc_pg[csrc->mc_top]); i++, j++) {
-			srcnode = NODEPTR(csrc->mc_pg[csrc->mc_top], i);
-			if (i == 0 && IS_BRANCH(csrc->mc_pg[csrc->mc_top])) {
+		for (i = 0; i < NUMKEYS(psrc); i++, j++) {
+			srcnode = NODEPTR(psrc, i);
+			if (i == 0 && IS_BRANCH(psrc)) {
 				MDB_cursor mn;
 				MDB_node *s2;
 				mdb_cursor_copy(csrc, &mn);
@@ -7312,8 +7324,8 @@ mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 	}
 
 	DPRINTF(("dst page %"Z"u now has %u keys (%.1f%% filled)",
-	    cdst->mc_pg[cdst->mc_top]->mp_pgno, NUMKEYS(cdst->mc_pg[cdst->mc_top]),
-		(float)PAGEFILL(cdst->mc_txn->mt_env, cdst->mc_pg[cdst->mc_top]) / 10));
+	    pdst->mp_pgno, NUMKEYS(pdst),
+		(float)PAGEFILL(cdst->mc_txn->mt_env, pdst) / 10));
 
 	/* Unlink the src page from parent and add to free list.
 	 */
@@ -7329,8 +7341,18 @@ mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 	}
 	csrc->mc_top++;
 
-	mdb_page_loose(csrc->mc_txn->mt_env, csrc->mc_pg[csrc->mc_top]);
-	if (IS_LEAF(csrc->mc_pg[csrc->mc_top]))
+	psrc = csrc->mc_pg[csrc->mc_top];
+	/* If not operating on FreeDB, allow this page to be reused
+	 * in this txn.
+	 */
+	if ((psrc->mp_flags & P_DIRTY) && csrc->mc_dbi != FREE_DBI) {
+		mdb_page_loose(csrc->mc_txn->mt_env, psrc);
+	} else {
+		rc = mdb_midl_append(&csrc->mc_txn->mt_free_pgs, psrc->mp_pgno);
+		if (rc)
+			return rc;
+	}
+	if (IS_LEAF(psrc))
 		csrc->mc_db->md_leaf_pages--;
 	else
 		csrc->mc_db->md_branch_pages--;
@@ -7338,7 +7360,6 @@ mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 		/* Adjust other cursors pointing to mp */
 		MDB_cursor *m2, *m3;
 		MDB_dbi dbi = csrc->mc_dbi;
-		MDB_page *mp = cdst->mc_pg[cdst->mc_top];
 
 		for (m2 = csrc->mc_txn->mt_cursors[dbi]; m2; m2=m2->mc_next) {
 			if (csrc->mc_flags & C_SUB)
@@ -7347,8 +7368,8 @@ mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 				m3 = m2;
 			if (m3 == csrc) continue;
 			if (m3->mc_snum < csrc->mc_snum) continue;
-			if (m3->mc_pg[csrc->mc_top] == csrc->mc_pg[csrc->mc_top]) {
-				m3->mc_pg[csrc->mc_top] = mp;
+			if (m3->mc_pg[csrc->mc_top] == psrc) {
+				m3->mc_pg[csrc->mc_top] = pdst;
 				m3->mc_ki[csrc->mc_top] += nkeys;
 			}
 		}
