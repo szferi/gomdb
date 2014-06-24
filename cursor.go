@@ -63,17 +63,17 @@ func (cursor *Cursor) MdbCursor() *C.MDB_cursor {
 	return cursor._cursor
 }
 
-func (cursor *Cursor) Get(set_key []byte, op uint) (key, val []byte, err error) {
-	k, v, err := cursor.GetVal(set_key, op)
+func (cursor *Cursor) Get(set_key, sval []byte, op uint) (key, val []byte, err error) {
+	k, v, err := cursor.GetVal(set_key, sval, op)
 	if err != nil {
 		return nil, nil, err
 	}
 	return k.Bytes(), v.Bytes(), nil
 }
 
-func (cursor *Cursor) GetVal(key []byte, op uint) (Val, Val, error) {
+func (cursor *Cursor) GetVal(key, val []byte, op uint) (Val, Val, error) {
 	ckey := Wrap(key)
-	var cval Val
+	cval := Wrap(val)
 	ret := C.mdb_cursor_get(cursor._cursor, (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval), C.MDB_cursor_op(op))
 	return ckey, cval, errno(ret)
 }
