@@ -156,7 +156,7 @@ func BenchmarkCursorScanRDONLY(b *testing.B) {
 			defer cur.Close()
 			var count int64
 			for {
-				_, _, err := cur.Get(nil, NEXT)
+				_, _, err := cur.Get(nil, nil, NEXT)
 				if err == NotFound {
 					return
 				}
@@ -207,7 +207,7 @@ func BenchmarkCursorScanValRDONLY(b *testing.B) {
 			defer cur.Close()
 			var count int64
 			for {
-				_, _, err := cur.GetVal(nil, NEXT)
+				_, _, err := cur.GetVal(nil, nil, NEXT)
 				if err == NotFound {
 					return
 				}

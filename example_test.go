@@ -43,7 +43,7 @@ func Example() {
 	cursor, _ := txn.CursorOpen(dbi)
 	defer cursor.Close()
 	for {
-		bkey, bval, err := cursor.Get(nil, NEXT)
+		bkey, bval, err := cursor.Get(nil, nil, NEXT)
 		if err == NotFound {
 			break
 		}
