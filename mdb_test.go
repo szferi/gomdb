@@ -82,7 +82,7 @@ func TestTest1(t *testing.T) {
 	var bkey, bval []byte
 	var rc error
 	for {
-		bkey, bval, rc = cursor.Get(nil, NEXT)
+		bkey, bval, rc = cursor.Get(nil, nil, NEXT)
 		if rc != nil {
 			break
 		}
