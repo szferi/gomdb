@@ -47,7 +47,7 @@ func (cursor *Cursor) Txn() *Txn {
 	var _txn *C.MDB_txn
 	_txn = C.mdb_cursor_txn(cursor._cursor)
 	if _txn != nil {
-		return &Txn{_txn}
+		return &Txn{_txn, cursor.nested}
 	}
 	return nil
 }

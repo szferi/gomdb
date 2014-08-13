@@ -38,37 +38,58 @@ const (
 // All database operations require a transaction handle.
 // Transactions may be read-only or read-write.
 type Txn struct {
-	_txn *C.MDB_txn
+	_txn   *C.MDB_txn
+	nested bool
 }
 
+// BeginTxn wraps mdb_txn_begin. http://goo.gl/KoSCV1
+//
+// BUG: Due to the nature of Go and the lightweight nature of the gomdb API all
+// operations on the returned transaction must be made within the caller's
+// goroutine to ensure operations are serialized on the same OS thread.  This
+// same-goroutine restriction also applies to the creation of nested
+// transactions.
 func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
 	var _txn *C.MDB_txn
 	var ptxn *C.MDB_txn
+	var nested bool
 	if parent == nil {
 		ptxn = nil
 	} else {
+		nested = true
 		ptxn = parent._txn
 	}
-	if flags&RDONLY == 0 {
+
+	// top-level writable transactions must be serialized on an os thread.
+	if !nested && flags&RDONLY == 0 {
 		runtime.LockOSThread()
 	}
+
 	ret := C.mdb_txn_begin(env._env, ptxn, C.uint(flags), &_txn)
 	if ret != SUCCESS {
 		runtime.UnlockOSThread()
 		return nil, errno(ret)
 	}
-	return &Txn{_txn}, nil
+
+	txn := &Txn{_txn, nested}
+	return txn, nil
+}
+
+func (txn *Txn) unlockThread() {
+	if !txn.nested {
+		runtime.UnlockOSThread()
+	}
 }
 
 func (txn *Txn) Commit() error {
 	ret := C.mdb_txn_commit(txn._txn)
-	runtime.UnlockOSThread()
+	txn.unlockThread()
 	return errno(ret)
 }
 
 func (txn *Txn) Abort() {
 	C.mdb_txn_abort(txn._txn)
-	runtime.UnlockOSThread()
+	txn.unlockThread()
 	txn._txn = nil
 }
 
@@ -152,6 +173,7 @@ func (txn *Txn) Del(dbi DBI, key, val []byte) error {
 
 type Cursor struct {
 	_cursor *C.MDB_cursor
+	nested  bool
 }
 
 func (txn *Txn) CursorOpen(dbi DBI) (*Cursor, error) {
@@ -160,7 +182,7 @@ func (txn *Txn) CursorOpen(dbi DBI) (*Cursor, error) {
 	if ret != SUCCESS {
 		return nil, errno(ret)
 	}
-	return &Cursor{_cursor}, nil
+	return &Cursor{_cursor, txn.nested}, nil
 }
 
 func (txn *Txn) CursorRenew(cursor *Cursor) error {
