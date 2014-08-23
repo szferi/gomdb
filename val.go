@@ -33,6 +33,11 @@ func Wrap(p []byte) Val {
 
 // If val is nil, a empty slice is retured.
 func (val Val) Bytes() []byte {
+	return C.GoBytes(val.mv_data, C.int(val.mv_size))
+}
+
+// If val is nil, a empty slice is retured.
+func (val Val) BytesNoCopy() []byte {
 	hdr := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(val.mv_data)),
 		Len:  int(val.mv_size),
