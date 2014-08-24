@@ -11,6 +11,7 @@ package mdb
 import "C"
 
 import (
+	"reflect"
 	"unsafe"
 )
 
@@ -33,6 +34,16 @@ func Wrap(p []byte) Val {
 // If val is nil, a empty slice is retured.
 func (val Val) Bytes() []byte {
 	return C.GoBytes(val.mv_data, C.int(val.mv_size))
+}
+
+// If val is nil, a empty slice is retured.
+func (val Val) BytesNoCopy() []byte {
+	hdr := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(val.mv_data)),
+		Len:  int(val.mv_size),
+		Cap:  int(val.mv_size),
+	}
+	return *(*[]byte)(unsafe.Pointer(&hdr))
 }
 
 // If val is nil, an empty string is returned.
