@@ -2,6 +2,9 @@ package mdb
 
 /*
 #cgo CFLAGS: -pthread -W -Wall -Wno-unused-parameter -Wbad-function-cast -O2 -g
+#cgo freebsd CFLAGS: -DMDB_DSYNC=O_SYNC
+#cgo openbsd CFLAGS: -DMDB_DSYNC=O_SYNC
+#cgo netbsd CFLAGS: -DMDB_DSYNC=O_SYNC
 #include <stdlib.h>
 #include <stdio.h>
 #include "lmdb.h"
