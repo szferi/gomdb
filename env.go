@@ -130,6 +130,14 @@ func (env *Env) Copy(path string) error {
 	return errno(ret)
 }
 
+func (env *Env) CopyFd(fd int) error {
+	ret := C.mdb_env_copyfd(env._env, C.mdb_filehandle_t(fd))
+	if ret != SUCCESS {
+		return Errno(ret)
+	}
+	return nil
+}
+
 // Statistics for a database in the environment
 type Stat struct {
 	PSize         uint   // Size of a database page. This is currently the same for all databases.
