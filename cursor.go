@@ -50,7 +50,7 @@ func (cursor *Cursor) Txn() *Txn {
 	var _txn *C.MDB_txn
 	_txn = C.mdb_cursor_txn(cursor._cursor)
 	if _txn != nil {
-		return &Txn{_txn}
+		return &Txn{_txn, cursor.nested}
 	}
 	return nil
 }
@@ -67,24 +67,28 @@ func (cursor *Cursor) MdbCursor() *C.MDB_cursor {
 }
 
 func (cursor *Cursor) Get(set_key, sval []byte, op uint) (key, val []byte, err error) {
-	k, v, err := cursor.GetVal(set_key, sval, op)
+	ckey, cval, err := cursor.GetVal(set_key, sval, op)
+	defer ckey.Free()
+	defer cval.Free()
 	if err != nil {
 		return nil, nil, err
 	}
-	return k.Bytes(), v.Bytes(), nil
+	return ckey.Bytes(), cval.Bytes(), nil
 }
 
-func (cursor *Cursor) GetVal(key, val []byte, op uint) (Val, Val, error) {
+func (cursor *Cursor) GetVal(key, val []byte, op uint) (*Val, *Val, error) {
 	ckey := Wrap(key)
 	cval := Wrap(val)
-	ret := C.mdb_cursor_get(cursor._cursor, (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval), C.MDB_cursor_op(op))
+	ret := C.mdb_cursor_get(cursor._cursor, (*C.MDB_val)(ckey), (*C.MDB_val)(cval), C.MDB_cursor_op(op))
 	return ckey, cval, errno(ret)
 }
 
 func (cursor *Cursor) Put(key, val []byte, flags uint) error {
 	ckey := Wrap(key)
 	cval := Wrap(val)
-	ret := C.mdb_cursor_put(cursor._cursor, (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval), C.uint(flags))
+	defer ckey.Free()
+	defer cval.Free()
+	ret := C.mdb_cursor_put(cursor._cursor, (*C.MDB_val)(ckey), (*C.MDB_val)(cval), C.uint(flags))
 	return errno(ret)
 }
 

@@ -41,45 +41,65 @@ const (
 // All database operations require a transaction handle.
 // Transactions may be read-only or read-write.
 type Txn struct {
-	_txn *C.MDB_txn
+	_txn   *C.MDB_txn
+	nested bool
 }
 
+// BeginTxn wraps mdb_txn_begin. http://goo.gl/KoSCV1
+//
+// BUG: Due to the nature of Go and the lightweight nature of the gomdb API all
+// operations on the returned transaction must be made within the caller's
+// goroutine to ensure operations are serialized on the same OS thread.  This
+// same-goroutine restriction also applies to the creation of nested
+// transactions.
 func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
 	var _txn *C.MDB_txn
 	var ptxn *C.MDB_txn
+	var nested bool
 	if parent == nil {
 		ptxn = nil
 	} else {
+		nested = true
 		ptxn = parent._txn
 	}
-	if flags&RDONLY == 0 {
+	// top-level writable transactions must be serialized on an os thread.
+	if !nested && flags&RDONLY == 0 {
 		runtime.LockOSThread()
 	}
+
 	ret := C.mdb_txn_begin(env._env, ptxn, C.uint(flags), &_txn)
 	if ret != SUCCESS {
 		runtime.UnlockOSThread()
 		return nil, errno(ret)
 	}
-	return &Txn{_txn}, nil
+
+	txn := &Txn{_txn, nested}
+	return txn, nil
+}
+
+func (txn *Txn) unlockThread() {
+	if !txn.nested {
+		runtime.UnlockOSThread()
+	}
 }
 
 func (txn *Txn) Commit() error {
 	ret := C.mdb_txn_commit(txn._txn)
-	runtime.UnlockOSThread()
-    // The transaction handle is freed if there was no error
-    if ret == C.MDB_SUCCESS {
-        txn._txn = nil
-    }
+	txn.unlockThread()
+	// The transaction handle is freed if there was no error
+	if ret == C.MDB_SUCCESS {
+		txn._txn = nil
+	}
 	return errno(ret)
 }
 
 func (txn *Txn) Abort() {
 	if txn._txn == nil {
-        return
-    }
-    C.mdb_txn_abort(txn._txn)
-	runtime.UnlockOSThread()
-    // The transaction handle is always freed.
+		return
+	}
+	C.mdb_txn_abort(txn._txn)
+	txn.unlockThread()
+	// The transaction handle is always freed.
 	txn._txn = nil
 }
 
@@ -136,33 +156,38 @@ func (txn *Txn) Get(dbi DBI, key []byte) ([]byte, error) {
 	return val.Bytes(), nil
 }
 
-func (txn *Txn) GetVal(dbi DBI, key []byte) (Val, error) {
+func (txn *Txn) GetVal(dbi DBI, key []byte) (*Val, error) {
 	ckey := Wrap(key)
+	defer ckey.Free()
 	var cval Val
-	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval))
-	return cval, errno(ret)
+	ret := C.mdb_get(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(ckey), (*C.MDB_val)(&cval))
+	return &cval, errno(ret)
 }
 
 func (txn *Txn) Put(dbi DBI, key []byte, val []byte, flags uint) error {
 	ckey := Wrap(key)
 	cval := Wrap(val)
-	ret := C.mdb_put(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval), C.uint(flags))
+	defer ckey.Free()
+	defer cval.Free()
+	ret := C.mdb_put(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(ckey), (*C.MDB_val)(cval), C.uint(flags))
 	return errno(ret)
 }
 
 func (txn *Txn) Del(dbi DBI, key, val []byte) error {
 	ckey := Wrap(key)
-	if val == nil {
-		ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(&ckey), nil)
-		return errno(ret)
+	defer ckey.Free()
+	var cval *Val
+	if val != nil {
+		cval = Wrap(val)
+		defer cval.Free()
 	}
-	cval := Wrap(val)
-	ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(&ckey), (*C.MDB_val)(&cval))
+	ret := C.mdb_del(txn._txn, C.MDB_dbi(dbi), (*C.MDB_val)(ckey), (*C.MDB_val)(cval))
 	return errno(ret)
 }
 
 type Cursor struct {
 	_cursor *C.MDB_cursor
+	nested  bool
 }
 
 func (txn *Txn) CursorOpen(dbi DBI) (*Cursor, error) {
@@ -171,7 +196,7 @@ func (txn *Txn) CursorOpen(dbi DBI) (*Cursor, error) {
 	if ret != SUCCESS {
 		return nil, errno(ret)
 	}
-	return &Cursor{_cursor}, nil
+	return &Cursor{_cursor, txn.nested}, nil
 }
 
 func (txn *Txn) CursorRenew(cursor *Cursor) error {
@@ -181,7 +206,6 @@ func (txn *Txn) CursorRenew(cursor *Cursor) error {
 
 /*
 type CmpFunc func(a, b []byte) int
-
 func (txn *Txn) SetCompare(dbi DBI, cmp CmpFunc) error {
     f := func(a, b *C.MDB_val) C.int {
         ga := C.GoBytes(a.mv_data, C.int(a.mv_size))
