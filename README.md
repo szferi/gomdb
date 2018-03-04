@@ -1,3 +1,9 @@
+Archiveing
+==========
+
+This project is not actively maintianed anymore. Please look for its forks or alternative implementations for better supported version.
+
+
 gomdb
 =====
 
