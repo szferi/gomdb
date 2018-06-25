@@ -35,6 +35,7 @@ const (
 	RESERVE     = C.MDB_RESERVE
 	APPEND      = C.MDB_APPEND
 	APPENDDUP   = C.MDB_APPENDDUP
+	CURRENT     = C.MDB_CURRENT
 )
 
 // Txn is Opaque structure for a transaction handle.
