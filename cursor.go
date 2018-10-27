@@ -5,6 +5,7 @@ package mdb
 #cgo freebsd CFLAGS: -DMDB_DSYNC=O_SYNC
 #cgo openbsd CFLAGS: -DMDB_DSYNC=O_SYNC
 #cgo netbsd CFLAGS: -DMDB_DSYNC=O_SYNC
+#cgo dragonfly CFLAGS: -DMDB_DSYNC=O_SYNC
 #include <stdlib.h>
 #include <stdio.h>
 #include "lmdb.h"

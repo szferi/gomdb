@@ -5,6 +5,7 @@ package mdb
 #cgo freebsd CFLAGS: -DMDB_DSYNC=O_SYNC
 #cgo openbsd CFLAGS: -DMDB_DSYNC=O_SYNC
 #cgo netbsd CFLAGS: -DMDB_DSYNC=O_SYNC
+#cgo dragonfly CFLAGS: -DMDB_DSYNC=O_SYNC
 #include <stdlib.h>
 #include <stdio.h>
 #include "lmdb.h"
@@ -66,20 +67,20 @@ func (env *Env) BeginTxn(parent *Txn, flags uint) (*Txn, error) {
 func (txn *Txn) Commit() error {
 	ret := C.mdb_txn_commit(txn._txn)
 	runtime.UnlockOSThread()
-    // The transaction handle is freed if there was no error
-    if ret == C.MDB_SUCCESS {
-        txn._txn = nil
-    }
+	// The transaction handle is freed if there was no error
+	if ret == C.MDB_SUCCESS {
+		txn._txn = nil
+	}
 	return errno(ret)
 }
 
 func (txn *Txn) Abort() {
 	if txn._txn == nil {
-        return
-    }
-    C.mdb_txn_abort(txn._txn)
+		return
+	}
+	C.mdb_txn_abort(txn._txn)
 	runtime.UnlockOSThread()
-    // The transaction handle is always freed.
+	// The transaction handle is always freed.
 	txn._txn = nil
 }
 
